@@ -1,0 +1,93 @@
+{{ ansible_managed | comment }}
+
+# Define SSL ports
+{% for ssl_port in squid_ssl_ports %}
+acl SSL_ports port {{ ssl_port }}
+{% endfor %}
+
+# Define save ports
+{% for port in squid_safe_ports %}
+acl Safe_ports port {{ port }}
+{% endfor %}
+
+# Define source acls
+{% if squid_src_acls | length > 0 %}
+{%   for acl in squid_src_acls %}
+# {{ acl.comment }}
+acl {{ acl.name }} src "/etc/squid/conf.d/acl_src_{{ acl.name}}.lst"
+{%   endfor %}
+{% endif %}
+
+# Define destination acls - dstdomain
+{% if squid_dst_acls | length > 0 %}
+{%   for acl in squid_dst_acls %}
+{%     if acl.type is defined %}
+# {{ acl.comment }}
+acl {{ acl.name }} {{ acl.type }} "/etc/squid/conf.d/acl_dst_{{ acl.name}}.lst"
+{%     endif %}
+{%   endfor %}
+{% endif %}
+
+# Define custom deny pages
+{% if squid_dst_acls | length > 0 %}
+{%   for acl in squid_dst_acls %}
+{%     if acl.deny_info is defined %}
+# Deny Page: {{ acl.comment }}
+deny_info ERR_{{ acl.deny_info | upper }} {{ acl.name }}
+{%     endif %}
+{%   endfor %}
+{% endif %}
+
+# Define connect methods
+acl Safe_method method CONNECT GET HEAD POST
+acl CONNECT method CONNECT
+
+# Define access list
+http_access allow localhost manager
+http_access deny manager
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+http_access deny !Safe_method
+http_access allow localhost
+{% if squid_dst_acls | length > 0 %}
+{%   for acl in squid_dst_acls %}
+{%     if acl.type is defined %}
+http_access {{ acl.access }} {{ acl.source }} {{ acl.name }}
+{%     else %}
+http_access {{ acl.access }} {{ acl.source }}
+{%     endif %}
+{%   endfor %}
+{% endif %}
+http_access deny all
+
+# squid http port
+http_port {{ squid_port }}
+
+{% if squid_logformat_name | length > 0 %}
+# define squid logformat
+logformat {{ squid_logformat_name }} {% if squid_logformat | length > 0 %}{"proxy_squid_ip":"%la","proxy_squid_fqdn":"{{ansible_hostname }}.{{ansible_domain}}","proxy_client_ip":"%>a","proxy_client_fqdn":"%>A","proxy_user_agent":"%{User-Agent}>h","proxy_timestamp":"%tl","proxy_short_message":"%rm %ru HTTP/%rv","proxy_dst_host":"%{Host}>h","proxy_dst_ip":"%<a","proxy_dst_url":"%ru","proxy_http_status":"%>Hs","proxy_http_method":"%rm","proxy_http_referer":"%{Referer}>h","proxy_mime_content_type":"%mt","proxy_response_time":"%tr","proxy_request_size":"%>st","proxy_reply_size":"%<st","proxy_squid_request_status":"%Ss","proxy_squid_hierarchy_status":"%Sh"}{% endif %}
+
+access_log /var/log/squid/access.log {{ squid_logformat_name }}
+{% endif %}
+
+{% if squid_config_custom | length > 0 %}
+# user-defined configuration settings from config_hash
+{%   for option, value in squid_config_custom.items() %}
+{{ option }} {{ value }}
+{%   endfor %}
+{% endif %}
+
+{% if squid_template %}
+# use custom error templates
+error_directory /etc/squid/errors.d
+{% endif%}
+
+# Leave coredumps in the first cache dir
+coredump_dir /var/spool/squid
+
+{% if squid_config_refresh_pattern | length > 0 %}
+# user-defined configuration settings from config_hash
+{%   for value in squid_config_refresh_pattern %}
+refresh_pattern {{ value }}
+{%   endfor %}
+{% endif %}

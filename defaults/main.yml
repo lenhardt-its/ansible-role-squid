@@ -1,0 +1,477 @@
+---
+ansible_proxy: client
+ansible_squid_vip: proxy.your-company.lan
+
+# Define squid listen ip:port or port
+squid_port: 3128
+
+# Define Squid Source ACLs
+squid_src_acls: []
+#squid_src_acls:
+#  - name: client_net
+#    comment: Client Networks
+### With source content
+#    source: |
+#      10.0.0.0/8
+### OR with source file in ansible-role-squid/proxy_{{ ansible_proxy }}
+#    file: client_net (filename: acl_src_client_net.lst)
+
+# Define Squid Destination ACLs
+squid_dst_acls: []
+#squid_dst_acls: []
+#  - name: blacklist
+#    comment: Blacklist
+#    access: deny
+#    type: dstdomain
+#    deny_info: custom_access_blocked # Define Squid deny_info pages defined in squid_template_errors
+#    source: client_net
+### With destination file
+#    file: blacklist (filename: acl_dst_blacklist.lst)
+
+#  - name: whitelist_domains
+#    comment: Internal Domains
+#    access: allow
+#    type: dstdomain
+#    source: client_net
+### With destination file
+#    file: whitelist_domains (filename: acl_dst_whitelist_domains.lst)
+### OR with destination definition
+#    destination: |
+#      .onkeldom.eu
+#      .cloudflare.com
+#  - name: whitelist_networks
+#    comment: Internal Domains
+#    access: allow
+#    type: dst
+#    source: client_net
+### With destination file
+#    file: whitelist_networks (filename: acl_dst_whitelist_networks.lst)
+### OR with destination definition
+#    destination: |
+#      10.0.0.0/8
+#      192.168.0.0/16
+
+# Define Squid SSL ports
+squid_ssl_ports:
+  - 443
+
+# Define Squid Safe ports
+squid_safe_ports:
+  - 80
+  - 443
+
+# Define Squid Logformat
+squid_logformat_name: squid_json
+squid_logformat: '{"proxy_squid_ip":"%la","proxy_squid_fqdn":"{{ansible_hostname }}.{{ansible_domain}}","proxy_client_ip":"%>a","proxy_client_fqdn":"%>A","proxy_user_agent":"%{User-Agent}>h","proxy_timestamp":"%tl","proxy_short_message":"%rm %ru HTTP/%rv","proxy_dst_host":"%{Host}>h","proxy_dst_ip":"%<a","proxy_dst_url":"%ru","proxy_http_status":"%>Hs","proxy_http_method":"%rm","proxy_http_referer":"%{Referer}>h","proxy_mime_content_type":"%mt","proxy_response_time":"%tr","proxy_request_size":"%>st","proxy_reply_size":"%<st","proxy_squid_request_status":"%Ss","proxy_squid_hierarchy_status":"%Sh"}'
+
+# Define Squid logrotate
+squid_logrotate_days: 28
+
+# Define Squid Custom config in key/value 
+squid_config_custom: []
+
+# Define Squid Refresh pattern in array
+squid_config_refresh_pattern: []
+
+# Define squid caddyserver output as html
+squid_caddy_generate_html_output: false
+squid_caddy_webserver_path: /var/www/
+squid_caddy_user: caddy
+squid_caddy_group: caddy
+
+# Define squid custom templates
+squid_template: false
+squid_template_file: squid_errors.html.j2
+squid_template_errors:
+  - name: custom_access_blocked
+    title_line: "Fehler: Webseiten Zugriff blockiert"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Webseiten Zugriff blockiert"
+    content_header_line: "Die Webseite wurde aus Sicherheitsgründen blockiert."
+    content_html: |
+      <p>Der Zugriff auf die von Ihnen gewünschte Webseite wurde aus Sicherheitsgründen blockiert.</p>
+      <p></br></p>
+      <p>Sollte der Zugriff auf diese Webseite dennoch erforderlich sein, wenden Sie sich bitte über Ihre Führungskraft an IT-Security um eine begründete Freischaltung beantragen zu können.</p>
+      <p></br></p>
+      <p>Vielen Dank für Ihre Unterstützung.</p>
+  - name: access_denied
+    title_line: "Fehler: Webseiten Zugriff verweigert"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Webseiten Zugriff verweigert"
+    content_header_line: "Die Sicherheitsüberprüfung dieser Webseite ist noch nicht erfolgt."
+    content_html: |
+      <p>Benötigen Sie diese Seite für Ihre Tätigkeit? Dann können Sie uns diese melden und freischalten lassen. </br> Klicken Sie dazu <a href="mailto:%w?subject=Proxy_Whitelisting%20-%20%U&amp;body=URL:%20%U%0ADomain:%20%H%0APort:%20%p%0AClientIP:%20%i%0ATimestamp:%20%t%0A%0AFreischaltungsgrund:%20%23BITTE%20GRUND%20ANGEBEN%0A%0A%0A%0ADebuginfo:%0A%R">hier</a> und senden uns eine E-Mail.</p>
+      <p></br></p>
+      <p>Bitte geben Sie den Grund der Freischaltung an und versenden Sie die automatisch generierte E-Mail, ohne weitere Veränderungen vorzunehmen.</p>
+      <p></br></p>
+      <p>Gemeldete Seiten werden schnellstmöglich geprüft und freigegeben.</p>
+      <p></br/></p>
+      <p>Vielen Dank für Ihre Unterstützung.</p>
+  - name: acl_time_quota_exceeded
+    title_line: "Fehler: Zeitguthaben aufgebraucht"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Zeitguthaben aufgebraucht"
+    content_header_line: ""
+    content_html: |
+      <p>Ihr Online-Zeitguthaben ist nun aufgebraucht. Es wird automatisch erneuert, sobald der nächste vereinbarte Zyklus beginnt.<br></p>
+  - name: agent_configure
+    title_line: "Fehler: Webbrowserkonfiguration"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Webbrowserkonfiguration"
+    content_header_line: "Ihre Webbrowserkonfiguration muss korrigiert werden um dieses Netzwerk zu nutzen."
+    content_html: |
+      <p>Die Konfiguration Ihres Webbrowsers scheint fehlerhaft zu sein.<br>Wenden Sie sich bitte an die Innendiensthotline (-500).</p>
+  - name: agent_wpad
+    title_line: "Fehler: Webbrowserkonfiguration"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Webbrowserkonfiguration"
+    content_header_line: "Ihre Webbrowserkonfiguration muss korrigiert werden um dieses Netzwerk zu nutzen."
+    content_html: |
+      <p>Die Konfiguration Ihres Webbrowsers scheint fehlerhaft zu sein.<br>Wenden Sie sich bitte an die Innendiensthotline (-500).</p>
+  - name: cache_access_denied
+    title_line: "Fehler: Webseiten Cache Zugriff verweigert"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Webseiten Zugriff verweigert"
+    content_header_line: "Die Sicherheitsüberprüfung dieser Cache Webseite ist noch nicht erfolgt."
+    content_html: |
+      <p>Benötigen Sie diese Seite für Ihre Tätigkeit? Dann können Sie uns diese melden und freischalten lassen. </br> Klicken Sie dazu <a href="mailto:%w?subject=Proxy_Whitelisting%20-%20%U&amp;body=URL:%20%U%0ADomain:%20%H%0APort:%20%p%0AClientIP:%20%i%0ATimestamp:%20%t%0A%0AFreischaltungsgrund:%20%23BITTE%20GRUND%20ANGEBEN%0A%0A%0A%0ADebuginfo:%0A%R">hier</a> und senden uns eine E-Mail.</p>
+      <p></br></p>
+      <p>Bitte geben Sie den Grund der Freischaltung an und versenden Sie die automatisch generierte E-Mail, ohne weitere Veränderungen vorzunehmen.</p>
+      <p></br></p>
+      <p>Gemeldete Seiten werden schnellstmöglich geprüft und freigegeben.</p>
+      <p></br/></p>
+      <p>Vielen Dank für Ihre Unterstützung.</p>
+  - name: cache_mgr_access_denied
+    title_line: "Fehler: Webseiten Authentifizierungs Zugriff verweigert"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Webseiten Zugriff verweigert - Authentifizierung"
+    content_header_line: "Die Anmeldung am Proxyserver konnte nicht verifiziert werden."
+    content_html: |
+      <p>Sie sind momentan nicht berechtigt %U von diesem Proxyserver abzurufen, bis Sie sich authentifiziert haben.<br></p>
+  - name: cannot_forward
+    title_line: "Fehler: Die angeforderte URL konnte nicht gefunden werden"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Die angeforderte URL konnte nicht gefunden werden<"
+    content_header_line: "Die Anfrage kann nicht weitergeleitet werden"
+    content_html: |
+      <p>Ihre Anfrage kann an den Folgeserver nicht weitergeleitet werden.<br></p>
+  - name: conflict_host
+    title_line: "Fehler: Die angeforderte URL konnte nicht gefunden werden"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Die angeforderte URL konnte nicht gefunden werden"
+    content_header_line: "Die Seite, die Sie aufrufen möchte, konnte nicht gefunden werden."
+    content_html: |
+      <p>Es ist möglich, dass Sie sich bei der Eingabe der Seite verschrieben haben, oder die Webseite umgezogen bzw. gelöscht wurde.<br></p>
+  - name: connect_fail
+    title_line: "Fehler: Verbindung Fehlgeschlagen"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Verbindung Fehlgeschlagen"
+    content_header_line: "Verbindung zu %I ist Fehlgeschlagen."
+    content_html: |
+      <p>Der Zielhost oder das Zielnetzwerk ist momentan nicht verfügbar. Bitte wiederholen sie die Anfrage.<br></p>
+  - name: dir_listing
+    title_line: "Verzeichnis: %U"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: ""
+    content_header_line: "Verzeichnis Auflistung"
+    content_html: |
+      <table id="dirlisting" summary="Verzeichnis Auflistung">
+      <tr>
+      <th><a href="../"><img border="0" src="/squid-internal-static/icons/silk/arrow_up.png" alt=""></a></th>
+      <th nowrap="nowrap"><a href="../">Übergeordnetes Verzeichnis</a> (<a href="/">Stammverzeichnis</a>)</th>
+      </tr>
+      %g
+      </table>
+  - name: dns_fail
+    title_line: "Fehler: Die angeforderte URL konnte nicht gefunden werden"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Die angeforderte URL konnte nicht gefunden werden"
+    content_header_line: "Der DNS-Server meldete:"
+    content_html: |
+      <p><code>%z</code><br></p>
+      <p>Das heißt, dass der Proxyserver nicht in der Lage war den Hostnamen aufzulösen der in der URL gefunden wurde. Überprüfen sie ob die Adresse korrekt ist.<br></p>
+  - name: esi
+    title_line: "Fehler: Die angeforderte URL konnte nicht gefunden werden"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "ESI-Verarbeitung fehlgeschlagen."
+    content_header_line: "Der ESI-Prozessor meldete:"
+    content_html: |
+      <p><code>%Z</code><br></p>
+      <p>Das heißt, dass der Ersatz nicht in der Lage war das ESI Template zu verarbeiten. Bitte melden sie diesen Fehler dem Webmaster.<br></p>
+  - name: forwarding_denied
+    title_line: "Fehler: Weiterleitung verweigert"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Weiterleitung verweigert"
+    content_header_line: "Der folgende Fehler wurde beim Versuch die URL <a href=\"%U\">%U</a> zu holen festgestellt:"
+    content_html: |
+      <p>Dieser Proxyserver wird ihre Anfrage nicht weiterleiten, da er versucht ein Geschwisterverhältnis zu erzwingen. Wahrscheinlich ist der Client auf %i ein Proxyserver der falsch konfiguriert wurde.<br></p>
+  - name: ftp_disabled
+    title_line: "Fehler: FTP deaktiviert"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "FTP deaktiviert"
+    content_header_line: "Der folgende Fehler wurde beim Versuch die URL <a href=\"%U\">%U</a> zu holen festgestellt:"
+    content_html: |
+      <p>FTP ist deaktiviert<br></p>
+      <p>Dieser Proxyserver unterstützt kein FTP.<br></p>
+  - name: ftp_failure
+    title_line: "Fehler: FTP Protokollfehler"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "FTP Protkollfehler"
+    content_header_line: "Ein FTP Protokollfehler ist bei der URL <a href=\"%U\">%U</a> aufgetreten."
+    content_html: |
+      <p>Squid sendete das folgende FTP Kommando:<br></p>
+      <p><code>%f</code><br></p>
+      <p>Der Server antwortete:<br></p>
+      <p><code>%F</code><br></p>
+      <p><code>%g</code><br></p>
+  - name: ftp_forbidden
+    title_line: "Fehler: FTP Authentifizierung fehlgeschlagen"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "FTP Authentifizierung fehlgeschlagen"
+    content_header_line: "Die FTP Authentifizierung bei der URL <a href=\"%U\">%U</a> ist Fehlgeschlagen."
+    content_html: |
+      <p>Squid sendete das folgende FTP Kommando:<br></p>
+      <p><code>%f</code><br></p>
+      <p>Der Server antwortete:<br></p>
+      <p><code>%F</code><br></p>
+      <p><code>%g</code><br></p>
+  - name: ftp_not_found
+    title_line: "Fehler: FTP URL nicht gefunden"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "FTP URL nicht gefunden"
+    content_header_line: "Die folgende URL konnte nicht gefunden werden: <a href=\"%U\">%U</a>"
+    content_html: |
+      <p>Squid sendete das folgende FTP Kommando:<br></p>
+      <p><code>%f</code><br></p>
+      <p>Der Server antwortete:<br></p>
+      <p><code>%F</code><br></p>
+      <p><code>%g</code><br></p>
+      <p>Die Ursache kann eine FTP URL mit einem absoluten Pfad sein (was nicht RFC 1738 konform ist). Wenn dies der Fall ist, ist die Datei unter <a href="%B">%B</a> zu finden.<br></p>
+  - name: ftp_put_created
+    title_line: "Fehler: FTP PUT Erfolgreich"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "FTP PUT Erfolgreich"
+    content_header_line: "Operation erfolgreich"
+    content_html: |
+      <p>Datei erstellt.<br></p>
+  - name: ftp_put_error
+    title_line: "Fehler: FTP Upload fehlgeschlagen"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "FTP Upload fehlgeschlagen"
+    content_header_line: "Ein FTP Protokollfehler ist bei der URL <a href=\"%U\">%U</a> aufgetreten."
+    content_html: |
+      <p><br></p>
+      <p>Squid sendete das folgende FTP Kommando:<br></p>
+      <p><code>%f</code><br></p>
+      <p>Der Server antwortete:<br></p>
+      <p><code>%F</code><br></p>
+      <p>Das heißt, dass der FTP Server keine Berechtigung oder nicht genug Plattenplatz zum Speichern der Datei zur Verfügung hat. Überprüfen sie Pfad, Berechtigungen und Plattenplatz und wiederholen Sie die Anfrage.<br></p>
+  - name: ftp_put_modified
+    title_line: "Fehler: FTP PUT Erfolgreich"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "FTP PUT Erfolgreich"
+    content_header_line: "Operation erfolgreich"
+    content_html: |
+      <p>Datei aktualisiert.<br></p>
+  - name: ftp_unanvailable
+    title_line: "Fehler: URL konnte nicht gefunden werden"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "URL konnte nicht gefunden werden"
+    content_header_line: "Der FTP Server war zu beschäftigt um die URL: <a href=\"%U\">%U</a> abzurufen"
+    content_html: |
+      <p>Squid sendete das folgende FTP Kommando:<br></p>
+      <p><code>%f</code><br></p>
+      <p>Der Server antwortete:<br></p>
+      <p><code>%F</code><br></p>
+      <p><code>%g</code><br></p>
+  - name: gateway_failure
+    title_line: "Fehler: Gateway Proxy Fehler"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Gateway Proxy Fehler"
+    content_header_line: "Der folgende Fehler wurde beim Versuch die URL <a href=\"%U\">%U</a> zu holen festgestellt:"
+    content_html: |
+      <p>Ein nicht-behebbarer interner Fehler oder ein Konfigurationsproblem verhindert die Ausführung der Anfrage.<br></p>
+  - name: icap_failure
+    title_line: "Fehler: ICAP Protokoll fehler"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "ICAP Protokoll fehler"
+    content_header_line: "Das heißt, dass etwas mit der ICAP Kommunikation nicht stimmt."
+    content_html: |
+      <p>Der ICAP Server ist nicht erreichbar.<br></p>
+      <p>Die Antwort des ICAP Servers war ungültig.<br></p>
+  - name: invalid_req
+    title_line: "Fehler: Ungültige Anfrage"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Ungültige Anfrage"
+    content_header_line: "<b>Ungültige Anfrage</b> Fehler erhalten als versucht wurde die Anfrage zu bearbeiten:"
+    content_html: |
+      <p>Mögliche Probleme sind:<br>
+      <ul>
+      <li id="missing-method"><p>Fehlende oder unbekannte Anfragemethode.</p></li>
+      <li id="missing-url"><p>Fehlende URL.</p></li>
+      <li id="missing-protocol"><p>Fehlende HTTP-Version (HTTP/1.0).</p></li>
+      <li><p>Anfrage ist zu lang.</p></li>
+      <li><p>Content-Length fehlt für POST oder PUT Anfragen.</p></li>
+      <li><p>Ungültiges Zeichen im Hostname; Unterstriche sind nicht erlaubt.</p></li>
+      <li><p>HTTP/1.1 <q>Expect</q> wird von einer HTTP/1.0 Software erfragt</p></li>
+      </ul>
+      <br>
+      </p>
+      <script language=\"javascript\">
+        if (\'%M\' != \'[unknown method]\') document.getElementById(\'missing-method\').style.display = \'none\';
+        if (\'%u\' != \'[no URL]\') document.getElementById(\'missing-url\').style.display = \'none\';
+        if (\'%P\' != \'[unknown protocol]\') document.getElementById(\'missing-protocol\').style.display = \'none\';
+      </script>
+  - name: invalid_resp
+    title_line: "Fehler: Ungültige Antwort"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Ungültige Antwort"
+    content_header_line: "<b>Ungültige Antwort</b> Fehler erhalten als versucht wurde die Anfrage zu bearbeiten:"
+    content_html: |
+      <p>Die HTTP Antwortnachricht, die vom Kontaktierten Server empfangen wurde, wurde nicht verstanden oder ist falsch. Bitte kontaktieren sie den Webmaster.<br></p>
+      <p>Ihr Cache Administrator ist in der Lage ihnen mehr über das Problem zu erklären, falls dies Notwendig ist.<br></p>
+  - name: invalid_url
+    title_line: "Fehler: Syntax Fehler"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Ungültige URL"
+    content_header_line: "Der Syntax der angeforderten URL ist falsch."
+    content_html: |
+      <p>Mögliche Probleme sind:<br>
+      <ul>
+      <li><p>Fehlendes oder ungültiges Adressprotokoll (Versuchen sie zum Beispiel<q>http://</q>)</p></li>
+      <li><p>Fehlender Hostname</p></li>
+      <li><p>Ungültiger Doppel-Escape im URL-Pfad</p></li>
+      <li><p>Ungültiges Zeichen im Hostname; Unterstriche sind nicht erlaubt.</p></li>
+      </ul>
+      <br>
+      <p>
+  - name: lifetime_exp
+    title_line: "Fehler: Zeitüberschreitung"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Zeitüberschreitung"
+    content_header_line: "Zeitlimit der Verbindung erreicht."
+    content_html: |
+      <p>Squid hat die Anfrage beendet, da die maximale Verbindungszeit überschritten wurde.<br></p>
+  - name: no_relay
+    title_line: "Fehler: Kein Wais Relay"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Kein Wais Relay"
+    content_header_line: "Der folgende Fehler wurde beim Versuch die URL <a href=\"%U\">%U</a> zu holen festgestellt:"
+    content_html: |
+      <p>Es ist kein WAIS Relay für diesen Proxyserver definiert! Sagen sie dies dem Administrator.<br></p>
+  - name: only_if_cached_miss
+    title_line: "Fehler: Cache missed"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Cached missed"
+    content_header_line: "Kein gültiges Dokument wurde im Cache gefunden und <q>only-if-cached</q> Option wurde angegeben."
+    content_html: |
+      <p>Sie haben eine Anfrage mit der <q>only-if-cached</q> Cache Kontrolloption getätigt. Das Dokument wurde nicht im Cache gefunden, <em>oder</em> es forderte eine Aktualisierung an welche durch die <q>only-if-cached</q> Option unterbunden wurde.<br></p>
+  - name: precondition_failed
+    title_line: "Fehler: Bedingung nicht erfüllt"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Bedingung nicht erfüllt"
+    content_header_line: "Dies Bedeutet:"
+    content_html: |
+      <p>Mindestens eine Bedingung, die vom HTTP Client vorrausgesetzt wird, wurde nicht erfüllt.<br></p>
+  - name: read_error
+    title_line: "Fehler: Lesefehler"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Lesefehler"
+    content_header_line: "Das System antwortete:"
+    content_html: |
+      <p>Ein Fehler ist beim Lesen vom Netzwerk aufgetreten. Bitte wiederholen sie die Anfrage.<br></p>
+  - name: read_timeout
+    title_line: "Fehler: Zeitüberschreitung beim warten"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Zeitüberschreitung beim warten"
+    content_header_line: "Das System antwortete: <i>%E</i>"
+    content_html: |
+      <p>Zeitüberschreitung beim Warten auf Daten des Netzwerks. Das Netzwerk oder der Server könnte nicht verfügbar oder überlastet sein. Bitte versuchen sie es erneut.<br></p>
+  - name: secure_connect_fail
+    title_line: "Fehler: Keine sichere Verbindung"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Keine sichere Verbindung"
+    content_header_line: "Konnte keine sichere Verbindung zu %I herstellen"
+    content_html: |
+      <p><code>%E (TLS code: %x)</code></p>
+      <p><code>%D</code><br></p>
+      <p>Dieser Proxy und der Zielhost waren nicht in der Lage Sicherheitseinstellungen auszuhandeln die beidseitig akzeptiert werden. Es ist möglich dass der Zielhost keine sicheren Verbindungen unterstützt oder der Proxy nicht mit dem Sicherheitszertifikat des Hosts einverstanden ist.<br></p>
+  - name: shutting_down
+    title_line: "Fehler: System herunterfahren"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "System herunterfahren"
+    content_header_line: "Der folgende Fehler wurde beim Versuch die URL <a href=\"%U\">%U</a> zu holen festgestellt:"
+    content_html: |
+      <p>Dieser Proxyserver wird momentan heruntergefahren und kann daher die Anfrage nicht bearbeiten. Bitte wiederholen sie die Anfrage gleich noch einmal.<br></p>
+  - name: socket_failure
+    title_line: "Fehler: Keine freien verbindungen"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Keine freien Verbindungen"
+    content_header_line: "Das System antwortete: <i>%E</i>"
+    content_html: |
+      <p>Squid kann keinen TCP-Socket erstellen, wahrscheinlich aufgrund von großer Systemlast. Bitte wiederholen Sie die Anfrage.<br></p>
+  - name: too_big
+    title_line: "Fehler: Anfrage oder Antwort zu lang"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Inhalt zu groß"
+    content_header_line: "Die Anfrage oder Antwort ist zu lang."
+    content_html: |
+      <p>Für einen POST-Request ist die hochzuladene Resource zu groß.<br></p>
+      <p>Für einen GET-Request ist die angeforderte Resource zu groß.<br></p>
+      <p>Diese Einschränkungen wurden vom den Administratoren eingerichtet die diesen Proxyserver betreiben. Bitte kontaktieren Sie ihn, falls Sie denken, dass dies ein Fehler ist.<br></p>
+  - name: unsup_httpversion
+    title_line: "Fehler: Nicht unterstützte HTTP-Version"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Nicht unterstützte HTTP-Version"
+    content_header_line: "Der folgende Fehler wurde beim Versuch die URL <a href=\"%U\">%U</a> zu holen festgestellt:"
+    content_html: |
+      <p>Dieser Squid akzeptiert die angeforderte HTTP Version nicht.<br></p>
+  - name: unsup_req
+    title_line: "Fehler: Anfragemethode nicht unterstützt"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Anfragemethode nicht unterstützt"
+    content_header_line: "Anfragemethode und Protokoll nicht unterstützt"
+    content_html: |
+      <p>Squid unterstützt nicht alle Anfragemethoden für alle Protokolle. Sie können zum Beispiel keine POST Anfrage über das Gopher Protokoll senden.<br></p>
+  - name: urn_resolve
+    title_line: "Fehler: URN nicht auflösbar"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "URN nicht auflösbar"
+    content_header_line: "Der folgende Fehler wurde beim Versuch die URN <a href=\"%U\">%U</a> zu holen festgestellt:"
+    content_html: |
+      <p>Hey, erwarten sie nicht zuviel von URNs auf %T :)<br></p>
+  - name: write_error
+    title_line: "Fehler: Fehler beim schreiben"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Fehler beim schreiben"
+    content_header_line: "Das System antwortete: <i>%E</i>"
+    content_html: |
+      <p>Ein Fehler ist beim Schreiben auf das Netzwerk aufgetreten. Bitte wiederholen sie die Anfrage.<br></p>
+  - name: zero_size_object
+    title_line: "Fehler: Nullgrößenantwort"
+    footer_line: "&copy | Kontakt: <a href=\"mailto:%w\"> %w</a>"
+    header_line: "Nullgrößenantwort"
+    content_header_line: "Der folgende Fehler wurde beim Versuch die URL <a href=\"%U\">%U</a> zu holen festgestellt:"
+    content_html: |
+      <p>Squid hat keine Daten für diese Anfrage empfangen.<br></p>
+
+# Configure single Consul service
+consul_service_config:
+  - id: "squid_{{ ansible_hostname }}.{{ ansible_domain }}"
+    name: "monitoring-blackbox_exporter"
+    port: "{{ squid_port }}"
+    address: "{{ ansible_hostname }}.{{ ansible_domain }}"
+    meta:
+      __param_module: "tcp_connect"
+      __scheme__: "http"
+      __metrics_path__: "/probe"
+      environment: "{{ ansible_environment }}"
+      product: "{{ ansible_product }}"
+      owner_email: "{{ ansible_contact_mail }}"
+      owner_jira: "{{ ansible_contact_jira }}"
+      alert_scc: "{{ ansible_alert_scc | string | lower }}"
+    check:
+      args: ["nc","-w1","-z","{{ ansible_hostname }}.{{ ansible_domain }}","{{ squid_port | string }}"]
+      interval: "60s"
+      timeout: "10s"
+    tags: ["prometheus","metrics","endpoint"]

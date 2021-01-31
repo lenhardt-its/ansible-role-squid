@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Squid config for {{ ansible_squid_vip }}</title>
+    <style>
+       /* Define custom styles to include with class="" */
+       .logo    { width: 400px; padding-left: 10px }
+       .line    { border-bottom: 1px solid black; position: absolute; }
+       .p-head  { padding-left: 0px; padding-right: 0px; font-size: 16px }
+       /* Define attribute default styles */
+       body     { background-color: white; text-align: left; color: black; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0; }
+       header   { padding-bottom: 5px; padding-top: 10px; padding-left: 10px; background-color: #aa8c41; }
+       article  { padding-left: 10px; padding-right: 0px; }
+       footer   { padding-left: 10px; padding-right: 0px; }
+       p        { padding-left: 0px; padding-right: 0px; font-size: 12px }
+       hr       { margin-left: 0px; margin-right: 0px; border-collapse: collapse; border: 1px solid #999; }
+       code     { background-color: #eee; font-size: 16px; font-family: monospace; display: block; text-align: left; border: 1px solid #999; padding: 5px;}
+       /* Define link styles */
+       /* unvisited link */
+       a:link    { color: #aa8c41; text-decoration: none;}
+       /* visited link */
+       a:visited { color: #aa8c41; text-decoration: none;}
+       /* mouse over link */
+       a:hover   { color: black; text-decoration: underline;}
+       /* selected link */
+       a:active  { color: blue; text-decoration: underline;}
+    </style>
+</head>
+<body >
+  <!-- Define header content -->
+  <header>
+    <h2>Squid config for {{ ansible_squid_vip }}</h2>
+  </header>
+  <!-- Define article (main) content -->
+  <article>
+      <p class="p-head"><b># Defined Safe Ports</b></p>
+{% for safe_port in squid_safe_ports %}
+      <p>acl Safe_ports {{ safe_port }}</p>
+{% endfor %}
+      <p>&nbsp;</p>
+      <p class="p-head"><b># Defined SSL Ports</b></p>
+{% for ssl_port in squid_ssl_ports %}
+      <p>acl SSL_ports {{ ssl_port }}</p>
+{% endfor %}
+      <p>&nbsp;</p>
+      <p class="p-head"><b># Defined Methods</b></p>
+      <p>acl Safe_method method CONNECT GET HEAD POST</p>
+      <p>acl CONNECT method CONNECT</p>
+      <p>&nbsp;</p>
+      <p class="p-head"><b># Defined Access Rules</b></p>
+      <p>http_access allow localhost manager</p>
+      <p>http_access deny manager</p>
+      <p>http_access deny !Safe_ports</p>
+      <p>http_access deny CONNECT !SSL_ports</p>
+      <p>http_access deny !Safe_method</p>
+      <p>http_access allow localhost</p>
+{% if squid_dst_acls | length > 0 %}
+{%   for acl in squid_dst_acls %}
+{%     if acl.type is defined %}
+      <p>http_access {{ acl.access }} <a href="squid_acls/acl_src_{{ acl.source }}.lst" target="_blank">{{ acl.source }}</a> <a href="squid_acls/acl_dst_{{ acl.name }}.lst" target="_blank">{{ acl.name }}</a></p>
+{%     else %}
+      <p>http_access {{ acl.access }} <a href="squid_acls/acl_src_{{ acl.source }}.lst" target="_blank">{{ acl.source }}</a>
+{%     endif %}
+{%   endfor %}
+{% endif %}
+      <p>http_access deny all</p>
+  </article>
+  <!-- Define footer content -->
+  <footer>
+    <hr />
+    <h6>&copy; | Kontakt: <a href="mailto:{{ ansible_squid_cache_mgr }}">{{ ansible_squid_cache_mgr }}</a> | Proxy: {{ ansible_squid_vip }}</h6>
+  </footer>
+</body>
+</html>

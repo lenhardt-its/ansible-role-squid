@@ -1,0 +1,16 @@
+{{ ansible_managed | comment }}
+/var/log/squid/*.log {
+    daily
+    compress
+    delaycompress
+    rotate {{ squid_logrotate_days }}
+    missingok
+    nocreate
+    create 0640 root squuid
+    datext
+    dateformat _%Y%m%d
+    sharedscripts
+    postrotate
+      /usr/sbin/squid -k rotate 2>/dev/null
+    endscript
+}

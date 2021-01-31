@@ -1,0 +1,238 @@
+---
+- name: install package
+  package:
+    name: squid
+    state: present
+  become: true
+  tags: squid
+
+- name: remove .default files in /etc/squid
+  file:
+    path: "/etc/squid/{{ item }}"
+    state: absent
+  with_items:
+    - cachemgr.conf.default
+    - errorpage.css.default
+    - mime.conf.default
+    - squid.conf.default
+  become: true
+  tags: squid
+
+- name: configure logrotate
+  template:
+    src: squid_logrotate.conf.j2
+    dest: "/etc/logrotate.d/squid"
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  tags: squid
+
+- name: create conf.d folders in /etc/squid
+  file:
+    path: /etc/squid/conf.d
+    state: directory
+    owner: root
+    group: squid
+    mode: u+rwX,g+rwX,o=rX
+  become: true
+  tags: squid
+
+- name: configure source acls and create files with content
+  template:
+    src: squid_acl_src.conf.j2
+    dest: "/etc/squid/conf.d/acl_src_{{ item.name }}.lst"
+    owner: root
+    group: squid
+    mode: '0644'
+  with_items: "{{ squid_src_acls }}"
+  when: item.source is defined
+  notify: reload squid
+  tags:
+    - squid
+    - squid_acls
+
+- name: copy source acls from files
+  copy:
+    src: "proxy_{{ ansible_proxy }}/acl_src_{{ item.file }}.lst"
+    dest: "/etc/squid/conf.d/acl_src_{{ item.file }}.lst"
+    owner: root
+    group: squid
+    mode: '0644'
+  with_items: "{{ squid_src_acls }}"
+  when: item.file is defined
+  notify: reload squid
+  become: true
+  tags:
+    - squid
+    - squid_acls
+
+- name: configure destination acls and create with from content
+  template:
+    src: squid_acl_dst.conf.j2
+    dest: "/etc/squid/conf.d/acl_dst_{{ item.name }}.lst"
+    owner: root
+    group: squid
+    mode: '0644'
+  with_items: "{{ squid_dst_acls }}"
+  when: item.destination is defined
+  notify: reload squid
+  become: true
+  tags:
+    - squid
+    - squid_acls
+
+- name: copy destination acls from files
+  copy:
+    src: "proxy_{{ ansible_proxy }}/acl_dst_{{ item.file }}.lst"
+    dest: "/etc/squid/conf.d/acl_dst_{{ item.file }}.lst"
+    owner: root
+    group: squid
+    mode: '0644'
+  with_items: "{{ squid_dst_acls }}"
+  when: item.file is defined
+  notify: reload squid
+  become: true
+  tags:
+    - squid
+    - squid_acls
+
+- name: configure config
+  template:
+    src: squid.conf.j2
+    dest: /etc/squid/squid.conf
+    owner: root
+    group: squid
+    mode: '0644'
+  notify: reload squid
+  become: true
+  tags:
+    - squid
+    - squid_acls
+
+- block:
+  - name: create errors.d folders in /etc/squid
+    file:
+      path: /etc/squid/errors.d
+      state: directory
+      owner: root
+      group: squid
+      mode: u+rwX,g+rwX,o=rX
+    become: true
+    tags: squid
+
+  - name: copy squid templates
+    template:
+      src: "{{ squid_template_file }}"
+      dest: "/etc/squid/errors.d/ERR_{{ item.name | upper }}"
+      owner: root
+      group: squid
+      mode: '0644'
+    with_items: "{{ squid_template_errors }}"
+    notify: restart squid
+    become: true
+    tags: squid
+  when: squid_template
+
+- name: start and enable service
+  systemd:
+    daemon_reload: true
+    name: squid
+    state: started
+    enabled: true
+  become: true
+  tags: squid
+
+- block:
+  - name: create squid_acls folders in webserver path
+    file:
+      path: "{{ squid_caddy_webserver_path }}/squid_acls"
+      state: directory
+      owner: "{{ squid_caddy_user }}"
+      group: "{{ squid_caddy_group }}"
+      mode: u+rwX,g+rwX,o=rX
+    become: true
+    tags: squid
+
+  - name: caddy - generate html file
+    template:
+      src: caddy_squid.html.j2
+      dest: "{{ squid_caddy_webserver_path }}/squid.html"
+      owner: "{{ squid_caddy_user }}"
+      group: "{{ squid_caddy_group }}"
+      mode: 0644
+    become: true
+    tags:
+      - squid
+      - squid_acls
+
+  - name: caddy - configure src acls and create files from content
+    template:
+      src: squid_acl_src.conf.j2
+      dest: "{{ squid_caddy_webserver_path }}/squid_acls/acl_src_{{ item.name }}.lst"
+      owner: "{{ squid_caddy_user }}"
+      group: "{{ squid_caddy_group }}"
+      mode: 0640
+    with_items: "{{ squid_src_acls }}"
+    when: item.source is defined
+    become: true
+    tags:
+      - squid
+      - squid_acls
+
+  - name: caddy - copy src acl files
+    copy:
+      src: "proxy_{{ ansible_proxy }}/acl_src_{{ item.name }}.lst"
+      dest: "{{ squid_caddy_webserver_path }}/squid_acls/acl_src_{{ item.name }}.lst"
+      owner: "{{ squid_caddy_user }}"
+      group: "{{ squid_caddy_group }}"
+      mode: 0640
+    with_items: "{{ squid_src_acls }}"
+    when: item.file is defined
+    become: true
+    tags:
+      - squid
+      - squid_acls
+
+  - name: caddy - configure dst acls and create files from content
+    template:
+      src: squid_acl_dst.conf.j2
+      dest: "{{ squid_caddy_webserver_path }}/squid_acls/acl_dst_{{ item.name }}.lst"
+      owner: "{{ squid_caddy_user }}"
+      group: "{{ squid_caddy_group }}"
+      mode: 0640
+    with_items: "{{ squid_dst_acls }}"
+    when: item.destination is defined
+    become: true
+    tags:
+      - squid
+      - squid_acls
+
+  - name: caddy - copy dst acl files
+    copy:
+      src: "proxy_{{ ansible_proxy }}/acl_dst_{{ item.name }}.lst"
+      dest: "{{ squid_caddy_webserver_path }}/squid_acls/acl_dst_{{ item.name }}.lst"
+      owner: "{{ squid_caddy_user }}"
+      group: "{{ squid_caddy_group }}"
+      mode: 0640
+    with_items: "{{ squid_dst_acls }}"
+    when: item.file is defined
+    become: true
+    tags:
+      - squid
+      - squid_acls
+  when: squid_caddy_generate_html_output
+
+- name: configure consul services
+  template:
+    src: consul.service.json.j2
+    dest: "/etc/consul.d/{{ item.id }}.json"
+    owner: consul
+    group: consul
+    mode: 0644
+  with_items: "{{ consul_service_config }}"
+  notify: reload consul
+  become: true
+  tags:
+    - squid
+    - consul

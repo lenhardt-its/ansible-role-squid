@@ -1,0 +1,24 @@
+---
+- name: restart squid
+  systemd:
+    daemon_reload: true
+    name: squid
+    state: restarted
+  become: true
+  tags: squid
+
+- name: reload squid
+  systemd:
+    name: squid
+    state: reloaded
+  become: true
+  tags: squid
+
+- name: reload consul
+  systemd:
+    name: consul
+    state: reloaded
+  become: true
+  tags:
+    - squid
+    - consul

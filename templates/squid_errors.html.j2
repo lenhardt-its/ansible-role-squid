@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>{{ item.title_line }}</title>
+    <style>
+       /* Define custom styles to include with class="" */
+       .logo    { width: 400px}
+       .line    { border-bottom: 1px solid black; position: absolute; }
+       /* Define attribute default styles */
+       body     { background-color: white; text-align: center; color: black; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 0;}
+       header   { padding-bottom: 10px; padding-top: 15px;background-color: #aa8c41; }
+       article  { padding-left: 20px; padding-right: 20px; }
+       footer   { padding-left: 20px; padding-right: 20px; }
+       p        { padding-left: 20px; padding-right: 20px; }
+       hr       { margin-left: 30px; margin-right: 30px; border-collapse: collapse; border: 1px solid #999; }
+       code     { background-color: #eee; font-size: 16px; font-family: monospace; display: block; text-align: left; border: 1px solid #999; padding: 5px;}
+       /* Define link styles */
+       /* unvisited link */
+       a:link    { color: #aa8c41; text-decoration: none;}
+       /* visited link */
+       a:visited { color: #aa8c41; text-decoration: none;}
+       /* mouse over link */
+       a:hover   { color: black; text-decoration: underline;}
+       /* selected link */
+       a:active  { color: blue; text-decoration: underline;}
+    </style>
+</head>
+<body >
+  <!-- Define header content -->
+  <header>
+    <h2>{{ item.header_line }}</h2>
+  </header>
+  <!-- Define article (main) content -->
+  <article>
+    <h3>{{ item.content_header_line }}</h3>
+    <hr />
+      {{ item.content_html }}
+    <hr />
+  </article>
+  <!-- Define footer content -->
+  <footer>
+    <h6>{{ item.footer_line }}</h6>
+  </footer>
+</body>
+</html>
