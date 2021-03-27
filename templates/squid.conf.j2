@@ -67,7 +67,7 @@ http_port {{ squid_port }}
 # define squid logformat
 logformat {{ squid_logformat_name }} {% if squid_logformat | length > 0 %}{"proxy_squid_ip":"%la","proxy_squid_fqdn":"{{ansible_hostname }}.{{ansible_domain}}","proxy_client_ip":"%>a","proxy_client_fqdn":"%>A","proxy_user_agent":"%{User-Agent}>h","proxy_timestamp":"%tl","proxy_short_message":"%rm %ru HTTP/%rv","proxy_dst_host":"%{Host}>h","proxy_dst_ip":"%<a","proxy_dst_url":"%ru","proxy_http_status":"%>Hs","proxy_http_method":"%rm","proxy_http_referer":"%{Referer}>h","proxy_mime_content_type":"%mt","proxy_response_time":"%tr","proxy_request_size":"%>st","proxy_reply_size":"%<st","proxy_squid_request_status":"%Ss","proxy_squid_hierarchy_status":"%Sh"}{% endif %}
 
-access_log /var/log/squid/access.log {{ squid_logformat_name }}
+access_log {{ squid_log_dir }}/access.log {{ squid_logformat_name }}
 {% endif %}
 
 {% if squid_config_custom | length > 0 %}

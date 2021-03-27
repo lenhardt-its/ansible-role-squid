@@ -134,12 +134,53 @@
     tags: squid
   when: squid_template
 
-- name: start and enable service
-  systemd:
-    daemon_reload: true
-    name: squid
-    state: started
-    enabled: true
+- name: check whether ufw status is active
+  command: "ufw status"
+  changed_when: False
+  ignore_errors: True
+  register: _ufw_status
+  become: true
+  when:
+    - squid_allow_firewall
+    - ansible_os_family == 'Debian'
+  tags: squid
+
+- name: check whether firewalld status is active
+  command: "firewall-cmd --state"
+  changed_when: False
+  ignore_errors: True
+  register: _firewalld_status
+  become: true
+  when: ansible_os_family == 'RedHat'
+  tags: squid
+
+- name: configure ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ squid_port }}"
+    proto: tcp
+    state: enabled
+    comment: "Squid Proxy"
+  notify: reload ufw
+  become: true
+  tags: squid
+  when:
+    - "'active' in _ufw_status.stdout"
+    - ansible_os_family == 'Debian'
+    - squid_allow_firewall
+
+- name: configure firewalld
+  ansible.posix.firewalld:
+    port: "{{ squid_port }}/tcp"
+    permanent: yes
+    state: enabled
+  notify: reload firewalld
+  become: true
+  when:
+    - "'running' in _firewalld_status.stdout"
+    - squid_allow_firewall
+    - ansible_os_family == 'RedHat'
+  notify: reload firewalld
   become: true
   tags: squid
 
@@ -223,16 +264,11 @@
       - squid_acls
   when: squid_caddy_generate_html_output
 
-- name: configure consul services
-  template:
-    src: consul.service.json.j2
-    dest: "/etc/consul.d/{{ item.id }}.json"
-    owner: consul
-    group: consul
-    mode: 0644
-  with_items: "{{ consul_service_config }}"
-  notify: reload consul
+- name: start and enable service
+  systemd:
+    daemon_reload: true
+    name: squid
+    state: started
+    enabled: true
   become: true
-  tags:
-    - squid
-    - consul
+  tags: squid

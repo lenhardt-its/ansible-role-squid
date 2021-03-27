@@ -66,6 +66,8 @@ squid_logformat: '{"proxy_squid_ip":"%la","proxy_squid_fqdn":"{{ansible_hostname
 
 # Define Squid logrotate
 squid_logrotate_days: 28
+squid_log_dir: /var/log/squid
+squid_allow_firewall: false
 
 # Define Squid Custom config in key/value 
 squid_config_custom: []
@@ -454,24 +456,3 @@ squid_template_errors:
     content_header_line: "Der folgende Fehler wurde beim Versuch die URL <a href=\"%U\">%U</a> zu holen festgestellt:"
     content_html: |
       <p>Squid hat keine Daten für diese Anfrage empfangen.<br></p>
-
-# Configure single Consul service
-consul_service_config:
-  - id: "squid_{{ ansible_hostname }}.{{ ansible_domain }}"
-    name: "monitoring-blackbox_exporter"
-    port: "{{ squid_port }}"
-    address: "{{ ansible_hostname }}.{{ ansible_domain }}"
-    meta:
-      __param_module: "tcp_connect"
-      __scheme__: "http"
-      __metrics_path__: "/probe"
-      environment: "{{ ansible_environment }}"
-      product: "{{ ansible_product }}"
-      owner_email: "{{ ansible_contact_mail }}"
-      owner_jira: "{{ ansible_contact_jira }}"
-      alert_scc: "{{ ansible_alert_scc | string | lower }}"
-    check:
-      args: ["nc","-w1","-z","{{ ansible_hostname }}.{{ ansible_domain }}","{{ squid_port | string }}"]
-      interval: "60s"
-      timeout: "10s"
-    tags: ["prometheus","metrics","endpoint"]
