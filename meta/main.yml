@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: squid
+  author: Dominik Lenhardt
+  description: Ansible role for installing and configuring squid proxy
+  license: "MIT"
+  min_ansible_version: 3
+  platforms:
+    - name: EL
+      versions:
+        - 7
+        - 8
+    - name: Debian
+      versions:
+        - buster
+        - stretch
+    - name: Ubuntu
+      versions:
+        - focal
+        - bionic
+  galaxy_tags:
+  - system
+  - network
+  - linux
+  - proxy
+  - squid
+  - webproxy
+dependencies: []
