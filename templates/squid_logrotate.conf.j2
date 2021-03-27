@@ -1,5 +1,5 @@
 {{ ansible_managed | comment }}
-/var/log/squid/*.log {
+{{ squid_log_dir }}/*.log {
     daily
     compress
     delaycompress

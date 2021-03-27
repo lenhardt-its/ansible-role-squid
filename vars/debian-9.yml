@@ -1,0 +1,5 @@
+---
+sockd_selinux_packages: []
+sockd_config: /etc/danted.conf
+sockd_systemd_unit: /lib/systemd/system/danted.service
+sockd_bin: danted
