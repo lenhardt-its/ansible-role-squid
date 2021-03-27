@@ -1,4 +1,4 @@
-# Ansible Role Squid
+# Ansible Role: Squid
 
 [![ubuntu-18](https://img.shields.io/badge/ubuntu-18.x-orange?style=flat&logo=ubuntu)](https://ubuntu.com/)
 [![ubuntu-20](https://img.shields.io/badge/ubuntu-20.x-orange?style=flat&logo=ubuntu)](https://ubuntu.com/)
@@ -38,21 +38,21 @@ All variables which can be overridden are stored in [defaults/main.yml](defaults
 | -------------- | ------------- | -----------------------------------|
 | `proxy_env` | {} | Set proxy environment variables | 
 | `squid_port` | 3128 | Default bind Port |
-| `squid_src_acls` | [] |  |
-| `squid_dst_acls` | [] |  |
-| `squid_ssl_ports` | [443] |  |
-| `squid_safe_ports` | [80,443] |  |
-| `squid_logformat_name` | squid_json |  |
-| `squid_logformat` | [defaults/main.yml#L65](defaults/main.yml#L65) |  |
-| `squid_logrotate_days` | 28 |  |
-| `squid_log_dir` | /var/log/squid |  |
-| `squid_allow_firewall` | false |  |
-| `squid_config_custom` | [] |  |
-| `squid_config_refresh_pattern` | [] |  |
-| `squid_caddy_generate_html_output` | false |  |
-| `squid_caddy_webserver_path` | /var/www/ |  |
-| `squid_caddy_user` | caddy |  |
-| `squid_caddy_group` | caddy |  |
+| `squid_src_acls` | [] | default source acls |
+| `squid_dst_acls` | [] | default destination acls |
+| `squid_ssl_ports` | [443] | default ssl ports |
+| `squid_safe_ports` | [80,443] | default safe ports |
+| `squid_logformat_name` | squid_json | logformat as json |
+| `squid_logformat` | [defaults/main.yml#L65](defaults/main.yml#L65) | logformat as json |
+| `squid_logrotate_days` | 28 | logrotate days |
+| `squid_log_dir` | /var/log/squid | log folder |
+| `squid_allow_firewall` | false | allow access on firewall |
+| `squid_config_custom` | [] | define config params (not defaults defined) |
+| `squid_config_refresh_pattern` | [] | define refresh pattern per line |
+| `squid_caddy_generate_html_output` | false | generate config and acls as html file |
+| `squid_caddy_webserver_path` | /var/www/ | webserver path |
+| `squid_caddy_user` | caddy | webserver user name |
+| `squid_caddy_group` | caddy | webserver group name |
 | `squid_template` | false | override original templates |
 | `squid_template_file` | squid_errors.html.j2 | squid deny page template |
 | `squid_template_errors` | [defaults/main.yml#L87](defaults/main.yml#L87) | defined template files |
