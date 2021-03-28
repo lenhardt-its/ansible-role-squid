@@ -24,7 +24,7 @@
     dest: "/etc/logrotate.d/squid"
     owner: root
     group: root
-    mode: '0644'
+    mode: 0644
   become: true
   tags: squid
 
@@ -32,8 +32,8 @@
   file:
     path: /etc/squid/conf.d
     state: directory
-    owner: root
-    group: squid
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
     mode: u+rwX,g+rwX,o=rX
   become: true
   tags: squid
@@ -42,9 +42,9 @@
   template:
     src: squid_acl_src.conf.j2
     dest: "/etc/squid/conf.d/acl_src_{{ item.name }}.lst"
-    owner: root
-    group: squid
-    mode: '0644'
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0644
   with_items: "{{ squid_src_acls }}"
   when: item.source is defined
   notify: reload squid
@@ -56,9 +56,9 @@
   copy:
     src: "proxy_{{ ansible_proxy }}/acl_src_{{ item.file }}.lst"
     dest: "/etc/squid/conf.d/acl_src_{{ item.file }}.lst"
-    owner: root
-    group: squid
-    mode: '0644'
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0644
   with_items: "{{ squid_src_acls }}"
   when: item.file is defined
   notify: reload squid
@@ -71,9 +71,9 @@
   template:
     src: squid_acl_dst.conf.j2
     dest: "/etc/squid/conf.d/acl_dst_{{ item.name }}.lst"
-    owner: root
-    group: squid
-    mode: '0644'
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0644
   with_items: "{{ squid_dst_acls }}"
   when: item.destination is defined
   notify: reload squid
@@ -86,9 +86,9 @@
   copy:
     src: "proxy_{{ ansible_proxy }}/acl_dst_{{ item.file }}.lst"
     dest: "/etc/squid/conf.d/acl_dst_{{ item.file }}.lst"
-    owner: root
-    group: squid
-    mode: '0644'
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0644
   with_items: "{{ squid_dst_acls }}"
   when: item.file is defined
   notify: reload squid
@@ -101,9 +101,9 @@
   template:
     src: squid.conf.j2
     dest: /etc/squid/squid.conf
-    owner: root
-    group: squid
-    mode: '0644'
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0644
   notify: reload squid
   become: true
   tags:
@@ -115,8 +115,8 @@
     file:
       path: /etc/squid/errors.d
       state: directory
-      owner: root
-      group: squid
+      owner: "{{ squid_user }}"
+      group: "{{ squid_group }}"
       mode: u+rwX,g+rwX,o=rX
     become: true
     tags: squid
@@ -125,9 +125,9 @@
     template:
       src: "{{ squid_template_file }}"
       dest: "/etc/squid/errors.d/ERR_{{ item.name | upper }}"
-      owner: root
-      group: squid
-      mode: '0644'
+      owner: "{{ squid_user }}"
+      group: "{{ squid_group }}"
+      mode: 0644
     with_items: "{{ squid_template_errors }}"
     notify: restart squid
     become: true
@@ -261,6 +261,10 @@
       - squid
       - squid_acls
   when: squid_caddy_generate_html_output
+
+- name: install squidguard
+  include_tasks: squidguard.yml
+  when: squidguard_enabled
 
 - name: start and enable service
   systemd:

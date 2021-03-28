@@ -1,9 +1,14 @@
 ---
-ansible_proxy: client
-ansible_squid_vip: proxy.your-company.lan
+# Define proxy environment variables
+proxy_env: {}
+#  http_proxy: "http://proxy:3128"
+#  https_proxy: "http://proxy:3128"
+#  no_proxy: "localhost,127.0.0.1,.{{ ansible_domain }},10.0.0.0/8,192.168.0.0/16,169.254.0.0/16"
 
 # Define squid listen ip:port or port
 squid_port: 3128
+squid_user: squid
+squid_group: squid
 
 # Define Squid Source ACLs
 squid_src_acls: []
@@ -68,18 +73,197 @@ squid_logformat: '{"proxy_squid_ip":"%la","proxy_squid_fqdn":"{{ansible_hostname
 squid_logrotate_days: 28
 squid_log_dir: /var/log/squid
 squid_allow_firewall: false
+squid_pid_folder: /var/run/squid
+squid_config_dir: /etc/squid
+squid_url_rewrite_programm: "/usr/bin/squidGuard -c {{ squid_config_dir }}/{{ squidguard_config_file }}"
+squid_url_rewrite_childen: "25 startup=10 idle=10 concurrency=0"
+squid_config_custom:
+  visible_hostname: "{{ ansible_hostname }}.{{ ansible_domain }}"
+  cache_mgr: "hostmaster@{{ ansible_domain }}"
+  maximum_object_size_in_memory: 512 KB
+  maximum_object_size: 4096 KB
+  client_persistent_connections: "on"
+  server_persistent_connections: "on"
+  forwarded_for: delete
+  via: "on"
+  acl_uses_indirect_client: "on"
+  delay_pool_uses_indirect_client: "on"
+  log_uses_indirect_client: "on"
+  cache_mem: 512 MB
+  cache_store_log: "{{ squid_log_dir }}/store.log"
+  cache_log: "{{ squid_log_dir }}/cache.log"
+  client_db: "on"
+  collapsed_forwarding: "on"
+  detect_broken_pconn: "on"
+  dns_defnames: "on"
+  dns_retransmit_interval: 2 seconds
+  dns_timeout: 5 minutes
+  half_closed_clients: "off"
+  httpd_suppress_version_string: "on"
+  ignore_unknown_nameservers: "on"
+  pipeline_prefetch: "on"
+  retry_on_error: "off"
+  strip_query_terms: "off"
+  uri_whitespace: strip
+  icp_access: deny all
+  http_reply_access: allow all
+  cache: deny all
+  ident_lookup_access: deny all
+  log_mime_hdrs: "on"
+  logfile_rotate: 0
+  ipcache_size: 10240
+  max_filedesc: 16384
+  forward_timeout: 200 seconds
+  connect_timeout: 30 seconds
+  read_timeout: 200 seconds
+  request_timeout: 200 seconds
+  persistent_request_timeout: 1 minute
+  client_lifetime: 4 hours
+  coredump_dir: /var/spool/squid
 
-# Define Squid Custom config in key/value 
-squid_config_custom: []
-
-# Define Squid Refresh pattern in array
-squid_config_refresh_pattern: []
+squid_config_refresh_pattern:
+  - ".jpg 14400 50% 18000 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-private ignore-auth"
+  - "-i \\.(gif|png|jpg|jpeg|ico|bmp)$ 14400 50% 18000 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-private ignore-auth"
+  - "-i \\.(iso|avi|wav|mp3|mp4|mpeg|swf|flv|x-flv|mpg|wma|ogg|wmv|asx|asf)$ 14400 50% 18000 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-private ignore-auth"
+  - "-i \\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims"
+  - "^ftp:              1440    20%    10080"
+  - "^gopher:           1440     0%     1440"
+  - "-i (/cgi-bin/|\\?)    0     0%        0"
+  - ".                     0    20%     4320"
 
 # Define squid caddyserver output as html
 squid_caddy_generate_html_output: false
 squid_caddy_webserver_path: /var/www/
 squid_caddy_user: caddy
 squid_caddy_group: caddy
+
+#
+# SquidGuard default settings
+#
+squidguard_enabled: true
+squidguard_html_output: true
+squidguard_log_folder: /var/log/squidguard
+squidguard_script_dir: /usr/local/bin/
+squidguard_redirect_url: "http://{{ ansible_hostname }}.{{ ansible_domain }}/cgi-bin/squidguard.cgi?clientaddr=%a&clientname=%n&clientuser=%i&srcclass=%s&targetclass=%t&url=%u"
+squidguard_config_file: squidguard.conf
+squidguard_dbhome: "{{ squid_config_dir }}/guard.d/blacklists"
+squidguard_web_allow_all: true
+squidguard_blacklist_url: "ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib/blacklists.tar.gz"
+# alternative list:       "ftp://ftp.ut-capitole.fr/pub/reseau/cache/squidguard_contrib/blacklists.tar.gz"
+# Sort List from allow -> deny
+squidguard_blacklist:
+  ##### own black/whitelist
+  - name: whitelist
+    log: true
+    redirect_url: ""
+    access: allow # deny/allow
+    file: whitelist # store in ansible-role-squid/files/squidguard/squidguard_{{ file }}.lst
+    type:
+      - domainlist
+  - name: blacklist
+    log: true
+    redirect_url: ""
+    access: deny # deny/allow
+    file: blacklist # store in ansible-role-squid/files/squidguard/squidguard_{{ file }}.lst
+    type:
+      - domainlist
+  ##### whitelist categories
+  - name: bank
+    log: true
+    access: allow # deny/allow
+    type:
+      - domainlist
+  - name: financial
+    log: true
+    access: allow # deny/allow
+    type:
+      - domainlist
+      - urllist
+  ##### blacklist categories
+  - name: adult
+    log: true
+    redirect_url: ""
+    access: deny # deny/allow
+    type:
+      - domainlist
+      - urllist
+      - expressionlist
+  - name: aggressive
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: agressif
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: ddos
+    log: true
+    access: deny
+    type:
+      - domainlist
+  - name: drugs
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: gambling
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: hacking
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: malware
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: phishing
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: sexual_education
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: porn
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: vpn
+    log: true
+    access: deny
+    type:
+      - domainlist
+  - name: violence
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
+  - name: warez
+    log: true
+    access: deny
+    type:
+      - domainlist
+      - urllist
 
 # Define squid custom templates
 squid_template: false

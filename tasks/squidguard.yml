@@ -1,0 +1,162 @@
+---
+- name: squidguard | install package
+  apt:
+    name: squidguard
+    state: present
+  become: true
+  tags: squidguard
+
+- name: squidguard | remove default config files
+  file:
+    path: "/etc/squidguard/squidGuard.conf.default"
+    state: absent
+  become: true
+  tags: squidguard
+
+- name: squidguard | configure logrotate
+  template:
+    src: squidguard.logrotate.j2
+    dest: "/etc/logrotate.d/squidguard"
+    owner: root
+    group: root
+    mode: 0644
+  become: true
+  tags: squidguard
+
+- name: squidguard | create /var/log/squidguard
+  file:
+    path: "{{ squidguard_logdir }}"
+    state: directory
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0755
+  become: true
+  tags: squidguard
+
+- name: squidguard | create guard.d folder in /etc/squid
+  file:
+    path: "{{ squid_config_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0755
+  become: true
+  with_items:
+    - "guard.d"
+    - "guard.d/blacklists"
+  tags: squidguard
+
+- name: squidguard | create guard.d custom folders
+  file:
+    path: "{{ squid_config_dir }}/blacklists/{{ item.file }}"
+    state: directory
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0755
+  with_items: "{{ squidguard_blacklist }}"
+  when: item.file is defined
+  become: true
+  tags: squidguard
+
+- name: squidguard | copy acls from files
+  copy:
+    src: "squidguard/squidguard_{{ item.file }}.lst"
+    dest: "{{ squid_config_dir }}/guard.d/blacklists/{{ item.name }}/domains"
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0644
+    force: "{{ item.force | default('yes') }}"
+  with_items: "{{ squidguard_blacklist }}"
+  when: item.file is defined
+  notify: reload squidguard
+  become: true
+  tags:
+    - squidguard
+    - squidguard_acls
+
+- name: squidguard | configure config
+  template:
+    src: squidguard.conf.j2
+    dest: "{{ squid_config_dir }}/{{ squidguard_config_file }}"
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    mode: 0644
+  notify: restart squid
+  become: true
+  tags:
+    - squidguard
+    - squidguard_acls
+
+- name: squidguard | generate web cgi-bin folder
+  file:
+    path: "{{ caddy_web_path }}/cgi-bin"
+    state: directory
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_group }}"
+    mode: 0755
+  become: true
+  tags: squidguard
+
+- name: squidguard | configure cgi-script
+  template:
+    src: squidguard.cgi.j2
+    dest: "{{ caddy_web_path }}/cgi-bin/squidguard.cgi"
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_group }}"
+    mode: 0755
+  become: true
+  tags: squidguard
+
+- block:
+  - name: squidguard | caddy - create squidguard folders in webserver path
+    file:
+      path: "{{ caddy_web_path }}/squid_acls"
+      state: directory
+      owner: "{{ caddy_user }}"
+      group: "{{ caddy_group }}"
+      mode: 0755
+    become: true
+    tags: squidguard_acls
+
+  - name: squidguard | caddy - copy dst acl squidguard files
+    copy:
+      src: "squidguard/squidguard_{{ item.name }}.lst"
+      dest: "{{ caddy_web_path }}/squidguard/acl_dst_squidguard_{{ item.name }}.lst"
+      owner: "{{ caddy_user }}"
+      group: "{{ caddy_group }}"
+      mode: 0640
+    with_items: "{{ squidguard_blacklist }}"
+    when: item.file is defined
+    tags: squidguard_acls
+    become: true
+  when: squidguard_html_output
+
+- name: squidguard | blacklist download and extract
+  unarchive:
+    src: "{{ squidguard_blacklist_url }}"
+    dest: "{{ squidguard_dbhome }}"
+    owner: "{{ squid_user }}"
+    group: "{{ squid_group }}"
+    remote_src: yes
+  become: true
+  tags: squidguard
+
+- name: squidguard | recursive chmod for blacklists folder
+  command: "/usr/bin/chown -R {{ squid_user }}:{{ squid_group }} {{ squidguard_dbhome }}"
+  become: true
+  tags: squidguard
+  
+- name: squidguard | blacklist create db files
+  command: "/usr/lib/squidguard -b -d -C all -c {{ squid_config_dir }}/{{ squidguard_config_file }}"
+  become: true
+  tags: squidguard
+
+- name: squidguard | cron blacklist update script cronjob
+  cron:
+    name: "Update SquidGuard Blacklist"
+    special_time: "weekly"
+    user: root
+    job: "/usr/bin/wget -q -N ftp://ftp.ut-capitole.fr/pub/reseau/cache/squidguard_contrib/blacklists.tar.gz && /usr/bin/tar xzf blacklists.tar.gz -C {{ squidguard_dbhome }}/ && /usr/lib/squidguard -b -d -C all -c {{ squid_config_dir }}/{{ squidguard_config_file }} && chown -R {{ squid_user }}:{{ squid_group }} {{ squidguard_dbhome }} 2>&1 | /usr/bin/logger -t squidguard"
+    cron_file: "ansible_squidguard_update.sh"
+  become: true
+  tags: squidguard

@@ -14,16 +14,26 @@ acl Safe_ports port {{ port }}
 {% if squid_src_acls | length > 0 %}
 {%   for acl in squid_src_acls %}
 # {{ acl.comment }}
-acl {{ acl.name }} src "/etc/squid/conf.d/acl_src_{{ acl.name}}.lst"
+acl {{ acl.name }} src "/etc/squid4/conf.d/acl_src_{{ acl.name}}.lst"
 {%   endfor %}
 {% endif %}
 
 # Define destination acls - dstdomain
 {% if squid_dst_acls | length > 0 %}
 {%   for acl in squid_dst_acls %}
-{%     if acl.type is defined %}
+{%     if acl.type is defined and acl.content is not defined %}
 # {{ acl.comment }}
-acl {{ acl.name }} {{ acl.type }} "/etc/squid/conf.d/acl_dst_{{ acl.name}}.lst"
+acl {{ acl.name }} {{ acl.type }} "/etc/squid4/conf.d/acl_dst_{{ acl.name}}.lst"
+{%     endif %}
+{%   endfor %}
+{% endif %}
+
+# Define destination acls - dstdomain
+{% if squid_dst_acls | length > 0 %}
+{%   for acl in squid_dst_acls %}
+{%     if acl.content is defined %}
+# {{ acl.comment }}
+acl {{ acl.name }} {{ acl.type }} {{ acl.content }}
 {%     endif %}
 {%   endfor %}
 {% endif %}
@@ -33,7 +43,7 @@ acl {{ acl.name }} {{ acl.type }} "/etc/squid/conf.d/acl_dst_{{ acl.name}}.lst"
 {%   for acl in squid_dst_acls %}
 {%     if acl.deny_info is defined %}
 # Deny Page: {{ acl.comment }}
-deny_info ERR_{{ acl.deny_info | upper }} {{ acl.name }}
+deny_info ERR_{{ acl.deny_info | upper }} {{ acl.source }}
 {%     endif %}
 {%   endfor %}
 {% endif %}
@@ -67,7 +77,7 @@ http_port {{ squid_port }}
 # define squid logformat
 logformat {{ squid_logformat_name }} {% if squid_logformat | length > 0 %}{"proxy_squid_ip":"%la","proxy_squid_fqdn":"{{ansible_hostname }}.{{ansible_domain}}","proxy_client_ip":"%>a","proxy_client_fqdn":"%>A","proxy_user_agent":"%{User-Agent}>h","proxy_timestamp":"%tl","proxy_short_message":"%rm %ru HTTP/%rv","proxy_dst_host":"%{Host}>h","proxy_dst_ip":"%<a","proxy_dst_url":"%ru","proxy_http_status":"%>Hs","proxy_http_method":"%rm","proxy_http_referer":"%{Referer}>h","proxy_mime_content_type":"%mt","proxy_response_time":"%tr","proxy_request_size":"%>st","proxy_reply_size":"%<st","proxy_squid_request_status":"%Ss","proxy_squid_hierarchy_status":"%Sh"}{% endif %}
 
-access_log {{ squid_log_dir }}/access.log {{ squid_logformat_name }}
+access_log /var/log/squid4/access.log {{ squid_logformat_name }}
 {% endif %}
 
 {% if squid_config_custom | length > 0 %}
@@ -79,15 +89,18 @@ access_log {{ squid_log_dir }}/access.log {{ squid_logformat_name }}
 
 {% if squid_template %}
 # use custom error templates
-error_directory /etc/squid/errors.d
+error_directory /etc/squid4/errors.d
 {% endif%}
 
-# Leave coredumps in the first cache dir
-coredump_dir /var/spool/squid
-
 {% if squid_config_refresh_pattern | length > 0 %}
-# user-defined configuration settings from config_hash
+# squid refresh-pattern
 {%   for value in squid_config_refresh_pattern %}
 refresh_pattern {{ value }}
 {%   endfor %}
+{% endif %}
+
+# squidguard configuration
+{% if squidguard_enabled is defined and squidguard_enabled is sameas true %}
+url_rewrite_program {{ squid_url_rewrite_programm }}
+url_rewrite_children {{ squid_url_rewrite_childen }}
 {% endif %}

@@ -1,0 +1,40 @@
+{{ ansible_managed | comment }}
+#
+# CONFIG FILE FOR SQUIDGUARD
+#
+dbhome {{ squidguard_dbhome }}
+logdir {{ squidguard_log_folder }}
+#
+# CONFIG CATEGORIES
+#
+{% if squidguard_blacklist | length > 0 %}
+{%   for blacklist in squidguard_blacklist %}
+dest {{ blacklist.name }} {
+{%     for type in blacklist.type %}
+{%       if type == 'domainlist' %}
+  domainlist     {{ blacklist.name }}/domains
+{%       elif type == 'urllist' %}
+  urllist        {{ blacklist.name }}/urls
+{%       elif type == 'expressionlist' %}
+  expressionlist {{ blacklist.name }}/expressions
+{%       endif %}
+{%     endfor %}
+{%     if blacklist.log is defined and blacklist.log is sameas true %}
+  log            access_{{ blacklist.name }}.log
+{%     endif %}
+{%     if blacklist.redirect_url is defined and blacklist.redirect_url | length > 0 %}
+  redirect       302:{{ blacklist.redirect_url }}
+{%     endif %}
+}
+{%   endfor %}
+{% endif %}
+#
+# CONFIG ACCESS ACLS
+#
+acl {
+  default {
+    pass {% if squidguard_blacklist | length > 0 %}{% for blacklist in squidguard_blacklist %}{% if blacklist.access == "deny" %} !{{ blacklist.name }} {% elif blacklist.access == "allow" %} {{ blacklist.name }} {% endif %}{% endfor %}{% endif %}{% if squidguard_web_allow_all is defined and squidguard_web_allow_all is sameas true %} all{% else %} none{% endif %}
+
+    redirect {{ squidguard_redirect_url }}
+  }
+}

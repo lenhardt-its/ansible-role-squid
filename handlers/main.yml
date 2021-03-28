@@ -14,11 +14,7 @@
   become: true
   tags: squid
 
-- name: reload consul
-  systemd:
-    name: consul
-    state: reloaded
+- name: reload squidguard
+  command: "/usr/lib/squidguard -b -d -C all -c {{ squid_config_dir }}/{{ squidguard_config_file }}"
   become: true
-  tags:
-    - squid
-    - consul
+  tags: squidguard

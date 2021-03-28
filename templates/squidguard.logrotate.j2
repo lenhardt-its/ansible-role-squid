@@ -1,0 +1,13 @@
+{{ ansible_managed | comment }}
+{{ squidguard_log_folder }}/*.log {
+    daily
+    compress
+    delaycompress
+    rotate {{ squid_logrotate_days }}
+    missingok
+    notifempty
+    nocreate
+    create 0640 {{ squid_user }} {{ squid_group }}
+    dateext
+    dateformat _%Y%m%d
+}
