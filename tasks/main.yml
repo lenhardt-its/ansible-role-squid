@@ -161,6 +161,8 @@
     proto: tcp
     state: enabled
     comment: "Squid Proxy"
+  changed_when: False
+  ignore_errors: True
   notify: reload ufw
   become: true
   tags: squid
@@ -174,6 +176,8 @@
     port: "{{ squid_port }}/tcp"
     permanent: yes
     state: enabled
+  changed_when: False
+  ignore_errors: True
   when:
     - "'running' in _firewalld_status.stdout"
     - squid_allow_firewall
