@@ -3,3 +3,5 @@ skip_list:
 warn_list:  # or 'skip_list' to silence them completely
   - command-instead-of-module  # Using command rather than module
   - var-spacing  # Variables should have spaces before and after:  {{ var_name }}
+  - deprecated-command-syntax  # Using command rather than an argument to e.g. file
+  - no-changed-when  # Commands should not change things if nothing needs doing
